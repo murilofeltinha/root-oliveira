@@ -18,28 +18,23 @@ jobs:
         run: sudo hostnamectl set-hostname oliveira
 
       - name: Download VPS backup (if any)
-        uses: actions/download-artifact@v4
-        with:
-          name: vps-backup
-          path: ./backup
-        continue-on-error: true
+        run: |
+          echo "Checking for existing backup..."
+          if [ -f ./backup/backup.zip ]; then
+            echo "Backup found, extracting..."
+            unzip -o ./backup/backup.zip -d /
+          else
+            echo "No backup found, starting fresh."
+          fi
 
       - name: Install prerequisites
         run: |
           sudo apt update
-          sudo apt install -y tmate curl unzip sudo net-tools neofetch
+          sudo apt install -y tmate curl unzip sudo net-tools neofetch python3 python3-pip
 
       - name: Install Tailscale official script
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
-
-      - name: Restore backup files
-        run: |
-          if [ -f ./backup/backup.zip ]; then
-            unzip -o ./backup/backup.zip -d /
-          else
-            echo "No backup found, starting fresh"
-          fi
 
       - name: Restore Tailscale state
         run: |
@@ -64,14 +59,15 @@ jobs:
             echo "oliveira ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/oliveira
           fi
 
-      - name: Get bot script and Dockerfiles
+      - name: Download bot script
         run: |
-          mkdir -p backup-files
-          # Bot script
-          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=${{ secrets.GITHUB_TOKEN }}" -o backup-files/bot-script.py
-          # Dockerfiles (apenas para backup)
-          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu -o backup-files/Dockerfile.ubuntu
-          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian -o backup-files/Dockerfile.debian
+          mkdir -p botfiles
+          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=${{ secrets.GITHUB_TOKEN }}" -o botfiles/bot-script.py
+
+      - name: Install Python deps and start bot
+        run: |
+          pip install discord.py psutil
+          nohup python3 botfiles/bot-script.py &>/dev/null &
 
       - name: Start tmate session for SSH access
         uses: mxschmitt/action-tmate@v3
@@ -87,11 +83,11 @@ jobs:
       - name: Sleep to keep VPS alive
         run: sleep 18000 # 5 hours
 
-      - name: Backup VPS data, Tailscale state, and bot files
+      - name: Backup VPS data and Tailscale state
         run: |
           sudo mkdir -p /opt/vps-backup/data
           sudo cp /var/lib/tailscale/tailscaled.state /opt/vps-backup/data/
-          sudo cp -r backup-files /opt/vps-backup/
+          sudo cp -r botfiles /opt/vps-backup/
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
 
