@@ -8,22 +8,52 @@ on:
 jobs:
   vps-session:
     runs-on: ubuntu-latest
-    timeout-minutes: 300 # 5 horas
+    timeout-minutes: 300 # Just under 5 hours
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set hostname
+      - name: Set hostname to oliveira
         run: sudo hostnamectl set-hostname oliveira
+
+      - name: Download VPS backup (if any)
+        uses: actions/download-artifact@v4
+        with:
+          name: vps-backup
+          path: ./backup
+        continue-on-error: true
 
       - name: Install prerequisites
         run: |
           sudo apt update
           sudo apt install -y tmate curl unzip sudo net-tools neofetch python3 python3-pip
 
-      - name: Install Tailscale
-        run: curl -fsSL https://tailscale.com/install.sh | sh
+      - name: Install Tailscale official script
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: Restore backup files
+        run: |
+          if [ -f ./backup/backup.zip ]; then
+            unzip -o ./backup/backup.zip -d /
+          else
+            echo "No backup found, starting fresh"
+          fi
+
+      - name: Restore Tailscale state
+        run: |
+          if [ -f /opt/vps-backup/data/tailscaled.state ]; then
+            sudo mkdir -p /var/lib/tailscale
+            sudo cp /opt/vps-backup/data/tailscaled.state /var/lib/tailscale/tailscaled.state
+            sudo chmod 600 /var/lib/tailscale/tailscaled.state
+          fi
+
+      - name: Start Tailscale
+        run: |
+          sudo tailscaled &
+          sleep 8
+          sudo tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=biralo || echo "Tailscale already up"
 
       - name: Create user oliveira with sudo
         run: |
@@ -34,12 +64,12 @@ jobs:
             echo "oliveira ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/oliveira
           fi
 
-      - name: Copy files for Docker and bot
+      - name: Get Dockerfiles and bot script
         run: |
           mkdir -p dockerfiles
           curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu -o dockerfiles/Dockerfile.ubuntu
           curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian -o dockerfiles/Dockerfile.debian
-          curl -fsSL https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py -o dockerfiles/bot-script.py
+          curl -fsSL https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=GHSAT0AAAAAADIWEFAFX4JYGYBNNIMZ4ZTU2E6RHAA -o dockerfiles/bot-script.py
 
       - name: Install Python deps, build Docker images, and start bot
         run: |
@@ -48,7 +78,7 @@ jobs:
           docker build -t ubuntu-vps -f dockerfiles/Dockerfile.ubuntu dockerfiles
           nohup python3 dockerfiles/bot-script.py &>/dev/null &
 
-      - name: Start tmate session
+      - name: Start tmate session for SSH access
         uses: mxschmitt/action-tmate@v3
 
       - name: Show Tailscale IP and tmate info
@@ -60,4 +90,18 @@ jobs:
           cat $HOME/.tmate.sock/ssh
 
       - name: Sleep to keep VPS alive
-        run: sleep 18000 # 5 horas
+        run: sleep 18000 # 5 hours
+
+      - name: Backup VPS data, Tailscale state, and dockerfiles
+        run: |
+          sudo mkdir -p /opt/vps-backup/data
+          sudo cp /var/lib/tailscale/tailscaled.state /opt/vps-backup/data/
+          sudo cp -r dockerfiles /opt/vps-backup/
+          sudo chown -R $USER:$USER /opt/vps-backup
+          zip -r backup.zip /opt/vps-backup
+
+      - name: Upload VPS backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vps-backup
+          path: backup.zip
