@@ -62,11 +62,11 @@ jobs:
       - name: Download bot script
         run: |
           mkdir -p botfiles
-          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=${{ secrets.GITHUB_TOKEN }}" -o botfiles/bot-script.py
+          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/main/bot-script.py" -o botfiles/bot-script.py
 
       - name: Install Python deps and start bot
         run: |
-          pip install discord.py psutil
+          python3 -m pip install --upgrade --user discord.py psutil
           nohup python3 botfiles/bot-script.py &>/dev/null &
 
       - name: Start tmate session for SSH access
