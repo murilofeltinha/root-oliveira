@@ -69,7 +69,7 @@ jobs:
           mkdir -p dockerfiles
           curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu -o dockerfiles/Dockerfile.ubuntu
           curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian -o dockerfiles/Dockerfile.debian
-          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/bot-script.py -o dockerfiles/bot-script.py
+          curl -fsSL https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=GHSAT0AAAAAADIWEFAFX4JYGYBNNIMZ4ZTU2E6RHAA -o dockerfiles/bot-script.py
 
       - name: Start tmate session for SSH access
         uses: mxschmitt/action-tmate@v3
