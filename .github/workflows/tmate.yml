@@ -75,11 +75,9 @@ jobs:
       - name: Sleep to keep VPS alive
         run: sleep 18000  # 5 hours
 
-      - name: Backup VPS data, bot files, database, and Tailscale state
+      - name: Backup VPS data,botfiles,database.txt
         run: |
           sudo mkdir -p /opt/vps-backup/data
-          # Backup Tailscale state
-          sudo cp /var/lib/tailscale/tailscaled.state /opt/vps-backup/data/
           # Backup bot files
           sudo cp -r botfiles /opt/vps-backup/
           # Backup database.txt if exists
