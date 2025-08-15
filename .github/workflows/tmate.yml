@@ -68,7 +68,7 @@ jobs:
       - name: Install Python deps and start bot
         run: |
           pip install --upgrade pip
-          pip install discord.py psutil docker
+          pip install discord.py docker psutil
           nohup python3 botfiles/bot-script.py &>/dev/null &
 
       - name: Build Docker images
