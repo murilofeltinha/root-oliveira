@@ -67,7 +67,6 @@ jobs:
       - name: Download bot files
         run: |
           mkdir -p botfiles
-          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/main/bot-script.py?token=GHSAT0AAAAAADIWEFAFX4JYGYBNNIMZ4ZTU2E6RHAA" -o botfiles/bot-script.py
           curl -fsSL "https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu" -o botfiles/Dockerfile.ubuntu
           curl -fsSL "https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian" -o botfiles/Dockerfile.debian
 
