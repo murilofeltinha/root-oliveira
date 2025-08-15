@@ -19,8 +19,7 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          sudo apt update
-          sudo apt install -y tmate curl unzip sudo net-tools neofetch
+          sudo apt update && sudo apt install -y tmate curl unzip sudo net-tools neofetch
 
       - name: Create user oliveira with sudo
         run: |
