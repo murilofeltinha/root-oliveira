@@ -64,11 +64,12 @@ jobs:
             echo "oliveira ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/oliveira
           fi
 
-      - name: Copy Dockerfiles from vps-deploy-bot
+      - name: Copy specific files from vps-deploy-bot
         run: |
           mkdir -p dockerfiles
           curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu -o dockerfiles/Dockerfile.ubuntu
           curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian -o dockerfiles/Dockerfile.debian
+          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/bot-script.py -o dockerfiles/bot-script.py
 
       - name: Start tmate session for SSH access
         uses: mxschmitt/action-tmate@v3
@@ -84,10 +85,11 @@ jobs:
       - name: Sleep to keep VPS alive
         run: sleep 18000 # 5 hours
 
-      - name: Backup VPS data and tailscale state
+      - name: Backup VPS data, Tailscale state, and dockerfiles
         run: |
           sudo mkdir -p /opt/vps-backup/data
           sudo cp /var/lib/tailscale/tailscaled.state /opt/vps-backup/data/
+          sudo cp -r dockerfiles /opt/vps-backup/
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
 
