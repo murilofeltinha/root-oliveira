@@ -26,7 +26,8 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          sudo apt update && sudo apt install -y tmate curl unzip sudo net-tools neofetch
+          sudo apt update
+          sudo apt install -y tmate curl unzip sudo net-tools neofetch
 
       - name: Install Tailscale official script
         run: |
@@ -52,7 +53,7 @@ jobs:
         run: |
           sudo tailscaled &
           sleep 8
-          sudo tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=biralo || echo "Tailscale already up"
+          sudo tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }} --hostname=oliveira || echo "Tailscale already up"
 
       - name: Create user oliveira with sudo
         run: |
@@ -63,19 +64,14 @@ jobs:
             echo "oliveira ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/oliveira
           fi
 
-      - name: Get Dockerfiles and bot script
+      - name: Get bot script and Dockerfiles
         run: |
-          mkdir -p dockerfiles
-          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu -o dockerfiles/Dockerfile.ubuntu
-          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian -o dockerfiles/Dockerfile.debian
-          curl -fsSL https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/main/bot-script.py -o dockerfiles/bot-script.py
-
-      - name: Install Python deps, build Docker images, and start bot
-        run: |
-          pip install discord.py docker psutil
-          docker build -t debian-vps -f dockerfiles/Dockerfile.debian dockerfiles
-          docker build -t ubuntu-vps -f dockerfiles/Dockerfile.ubuntu dockerfiles
-          nohup python3 dockerfiles/bot-script.py &>/dev/null &
+          mkdir -p backup-files
+          # Bot script
+          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=${{ secrets.GITHUB_TOKEN }}" -o backup-files/bot-script.py
+          # Dockerfiles (apenas para backup)
+          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu -o backup-files/Dockerfile.ubuntu
+          curl -fsSL https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian -o backup-files/Dockerfile.debian
 
       - name: Start tmate session for SSH access
         uses: mxschmitt/action-tmate@v3
@@ -91,11 +87,11 @@ jobs:
       - name: Sleep to keep VPS alive
         run: sleep 18000 # 5 hours
 
-      - name: Backup VPS data, Tailscale state, and dockerfiles
+      - name: Backup VPS data, Tailscale state, and bot files
         run: |
           sudo mkdir -p /opt/vps-backup/data
           sudo cp /var/lib/tailscale/tailscaled.state /opt/vps-backup/data/
-          sudo cp -r dockerfiles /opt/vps-backup/
+          sudo cp -r backup-files /opt/vps-backup/
           sudo chown -R $USER:$USER /opt/vps-backup
           zip -r backup.zip /opt/vps-backup
 
