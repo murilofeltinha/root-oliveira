@@ -30,12 +30,7 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt update
-          sudo apt install -y curl unzip sudo net-tools python3 python3-pip
-
-      - name: Install Docker dependencies (avoid containerd conflict)
-        run: |
-          sudo apt remove -y containerd
-          sudo apt install -y containerd.io
+          sudo apt install -y curl unzip sudo net-tools python3 python3-pip git docker.io
 
       - name: Install Tailscale official script
         run: |
@@ -64,18 +59,23 @@ jobs:
             echo "oliveira ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/oliveira
           fi
 
-      - name: Download bot files
+      - name: Clone private repo with token
         run: |
-          mkdir -p botfiles
-          curl -fsSL "https://raw.githubusercontent.com/murilofeltinha/vps-hycroe/refs/heads/main/bot-script.py?token=GHSAT0AAAAAADIWEFAESUSKDMELVGLBBMXU2E7FMJQ" -o botfiles/bot-script.py
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/murilofeltinha/vps-hycroe.git botfiles
           curl -fsSL "https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.ubuntu" -o botfiles/Dockerfile.ubuntu
           curl -fsSL "https://raw.githubusercontent.com/hycroedev/vps-deploy-bot/main/Dockerfile.debian" -o botfiles/Dockerfile.debian
 
       - name: Install Python deps and start bot
         run: |
           pip install --upgrade pip
-          pip install discord.py docker psutil
+          pip install discord.py psutil docker
           nohup python3 botfiles/bot-script.py &>/dev/null &
+
+      - name: Build Docker images
+        run: |
+          cd botfiles
+          docker build -t debian-vps -f Dockerfile.debian .
+          docker build -t ubuntu-vps -f Dockerfile.ubuntu .
 
       - name: Start tmate session for SSH access
         uses: mxschmitt/action-tmate@v3
